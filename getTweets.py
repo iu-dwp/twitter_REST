@@ -19,47 +19,46 @@ import json, twitter, time, sys, math
 
 # Function to move along the tweets list for available ids
 #' @r = tweet list
-def getNextID( r ) :
-    min_id = r[0]['id']
-    for tweet in r :
+def getNextID(batch_of_tweets) :
+    min_id = batch_of_tweets[0]['id']
+    for tweet in batch_of_tweets :
         if tweet['id'] < min_id :
             min_id = tweet['id']
     return min_id
 
 # Function to capture all tweets into an array
-def getTweets(r) :
+def getTweets(batch_of_tweets) :
     tweets = []
-    for i in range( len( r ) ) :
-        tweet = {}
-        tweet['id'] = r[i].id
-        tweet['date'] = r[i].created_at
-        tweet['text'] = r[i].text.replace( "\n", " " )
-        tweet['latitude'] = float( r[i].geo['coordinates'][0] )
-        tweet['longitude'] = float( r[i].geo['coordinates'][1] )
-	tweet['user'] = r[i].user.id
-        tweets.append( tweet.copy() )
+    for i in range(len(batch_of_tweets)) :
+        tweet = {
+            'id' : batch_of_tweets[i].id,
+            'date' : batch_of_tweets[i].created_at,
+            'text' : batch_of_tweets[i].text.replace("\n", " "),
+            'latitude' : float(batch_of_tweets[i].geo['coordinates'][0]),
+            'longitude' : float(batch_of_tweets[i].geo['coordinates'][1]),
+            'user' : batch_of_tweets[i].user.id
+        }
+        tweets.append(tweet.copy())
     return tweets
 
 # Get the json authentication parameters
-def get_config_params ( filepath ) :
-    with open( filepath, 'r') as data_file :
-        return json.load( data_file )
+def get_config_params(filepath) :
+    with open(filepath, 'r') as data_file :
+        return json.load(data_file)
 
 ## Main process
 if __name__ == '__main__' :
-    sys.stdout.write( '0%' )
+    sys.stdout.write('0%')
     sys.stdout.flush()
 
     # Get API keys
-    config_params = get_config_params( 'config_params.json' )
+    config_params = get_config_params('config_params.json')
 
     # Maybe an unnecessary step...
-
-    consumer_key = config_params[ 'consumer_key' ]
-    consumer_secret = config_params[ 'consumer_secret' ]
-    access_token = config_params[ 'access_token' ]
-    access_token_secret = config_params[ 'access_token_secret' ]
-
+    consumer_key = config_params['consumer_key']
+    consumer_secret = config_params['consumer_secret']
+    access_token = config_params['access_token']
+    access_token_secret = config_params['access_token_secret']
 
     # Access the API
     api = twitter.Api(
@@ -75,34 +74,36 @@ if __name__ == '__main__' :
     # 100 tweets. We're rounding to 100 tweets batches. 
     #
     # Coordinates 51.5, -0.1 correspond to London
-    results = getTweets( api.GetSearch(
-        geocode = ( 51.5, -0.1, '10mi' ), 
-        count = 100
-    )
+    results = getTweets(
+        api.GetSearch(
+            geocode = (51.5, -0.1, '10mi'), 
+            count = 100
+        )
     )
     # Get the subsequent batches of results
-    next_id = getNextID( results )
-    for i in range( 150 ) :
+    next_id = getNextID(results)
+    for i in range(150) :
         flag = 0
         try:
-            next_results = getTweets( api.GetSearch(
-                geocode = ( 51.5, -0.1, '10mi' ),
-                count = 100,
-                max_id = next_id  # reference to get sequenced batches
+            next_results = getTweets(
+                api.GetSearch(
+                    geocode = (51.5, -0.1, '10mi'),
+                    count = 100,
+                    max_id = next_id  # reference to get sequenced batches
+                )
             )
-            )
-            next_id = getNextID( next_results )
+            next_id = getNextID(next_results)
         except twitter.error.TwitterError:
             print "error"
             next_id = next_id - 1
 
         results += next_results
         sys.stdout.write(
-            '\b' * (len(str(int(math.floor(i * 100 / 151 )))) + 1 )
-            + str(int(math.floor((i + 1) * 100 / 151 ))) + '%')
+            '\b' * (len(str(int(math.floor(i * 100 / 151)))) + 1)
+            + str(int(math.floor((i + 1) * 100 / 151))) + '%')
         sys.stdout.flush()
     
     with open('outcome_tweets.json', 'w') as outcome_file:
-        json.dump( results, outcome_file )
-
-    print('Collected ' + str(len( results )) + ' tweets')
+        json.dump(results, outcome_file)
+    print('') 
+    print('Collected ' + str(len(results)) + ' tweets')
