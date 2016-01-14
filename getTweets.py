@@ -76,6 +76,7 @@ if __name__ == '__main__' :
     # Coordinates 51.5, -0.1 correspond to London
     results = getTweets(
         api.GetSearch(
+            term = 'London',
             geocode = (51.5, -0.1, '10mi'), 
             count = 100
         )
@@ -87,6 +88,7 @@ if __name__ == '__main__' :
         try:
             next_results = getTweets(
                 api.GetSearch(
+                    term = 'London',
                     geocode = (51.5, -0.1, '10mi'),
                     count = 100,
                     max_id = next_id  # reference to get sequenced batches
